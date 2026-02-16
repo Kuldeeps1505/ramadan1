@@ -1,0 +1,35 @@
+
+
+# environment
+.env
+.env.*
+venv
+
+# logs
+logs
+*.log
+
+
+# runtime
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# coverage
+coverage/
+
+# build
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# misc
+*.swp
