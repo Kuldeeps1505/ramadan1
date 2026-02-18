@@ -6,6 +6,9 @@ import axios from 'axios';
 // NEW: Session management
 const SESSION_STORAGE_KEY = 'hafiz_session_id';
 
+const AI_BASE_URL = import.meta.env.VITE_AI_BASE_URL || 'http://127.0.0.1:8000 ';
+
+
 function getSessionId(): string | null {
   return localStorage.getItem(SESSION_STORAGE_KEY);
 }
@@ -21,11 +24,14 @@ export const aiService = {
       // NEW: Include session_id for memory
       const sessionId = getSessionId();
 
-      const response = await axios.post(`http://127.0.0.1:8000/chat/`, { 
-        message,
-        session_id: sessionId  // NEW
-      });
 
+      const AI_BASE_URL = import.meta.env.VITE_AI_BASE_URL || 'http://127.0.0.1:8000';
+
+        const response = await axios.post(`${AI_BASE_URL}/chat/`, { 
+            message,
+            session_id: sessionId
+    });
+      
       // NEW: Store session_id from response
       if (response.data.session_id) {
         setSessionId(response.data.session_id);
@@ -46,7 +52,7 @@ export const aiService = {
     const sessionId = getSessionId();
     if (sessionId) {
       try {
-        await axios.delete(`http://127.0.0.1:8000/chat/session/${sessionId}`);
+        await axios.delete(`${AI_BASE_URL}/chat/session/${sessionId}`);
         localStorage.removeItem(SESSION_STORAGE_KEY);
       } catch (error) {
         console.error('Error clearing conversation:', error);
@@ -59,7 +65,7 @@ export const aiService = {
     const sessionId = getSessionId();
     if (!sessionId) return { messages: [] };
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/chat/session/${sessionId}/history`);
+      const response = await axios.get(`${AI_BASE_URL}/chat/session/${sessionId}/history`);
       return response.data;
     } catch (error) {
       console.error('Error fetching history:', error);
