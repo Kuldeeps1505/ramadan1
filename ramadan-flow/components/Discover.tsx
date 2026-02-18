@@ -28,15 +28,18 @@ export const Discover: React.FC = () => {
       const initialQuery = location.state.askHafizQuery;
       setMode('chat');
       setQuery(initialQuery);
-      handleSend(initialQuery);
+      handleSend(initialQuery, 'chat');
       initialized.current = true;
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
-  const handleSend = async (manualQuery?: string) => {
+  const handleSend = async (manualQuery?: string,  forceMode?: Mode) => {
     const q = manualQuery || query;
     if (!q.trim()) return;
+
+
+    const activeMode = forceMode || mode; 
 
     const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', content: q, type: 'text' };
     setMessages(prev => [...prev, userMsg]);
@@ -44,22 +47,7 @@ export const Discover: React.FC = () => {
     setIsTyping(true);
 
     try {
-      if (mode === 'dua') {
-  const response = await aiService.chatWithHafiz(userMsg.content);
-  
-  // Extract dua from response
-  const duaData = response.type === 'dua_card' 
-    ? response.metadata 
-    : response.metadata;
-  
-  setMessages(prev => [...prev, {
-    id: Date.now().toString(),
-    role: 'assistant',
-    content: 'Here is a Dua for your situation:',
-    type: 'dua_card',
-    metadata: duaData
-  }]);
-      } else if (mode === 'chat') {
+        if (activeMode === 'chat') {
         const response = await aiService.chatWithHafiz(userMsg.content);
 
         // FIXED: Extract text from response properly
@@ -79,6 +67,17 @@ export const Discover: React.FC = () => {
               // use as-is if parsing fails
             }
           }
+          // CLEAN MARKDOWN SYMBOLS
+          displayContent = displayContent
+            .replace(/\*\*\*(.*?)\*\*\*/g, '$1')   
+            .replace(/\*\*(.*?)\*\*/g, '$1')         
+            .replace(/\*(.*?)\*/g, '$1')             
+            .replace(/#{1,6}\s/g, '')                
+            .replace(/^\s*[-•]\s/gm, '')             
+            .replace(/^\s*\d+\.\s/gm, '')           
+            .replace(/\n{3,}/g, '\n\n')              
+            .trim();
+  
         }
 
         setMessages(prev => [...prev, {
@@ -88,7 +87,24 @@ export const Discover: React.FC = () => {
           type: response.type || 'text',
           metadata: response.metadata || null
         }]);
-      } else if (mode === 'video') {
+
+      } else if (activeMode === 'dua') {
+  const response = await aiService.chatWithHafiz(userMsg.content);
+  
+  // Extract dua from response
+  const duaData = response.type === 'dua_card' 
+    ? response.metadata 
+    : response.metadata;
+  
+  setMessages(prev => [...prev, {
+    id: Date.now().toString(),
+    role: 'assistant',
+    content: 'Here is a Dua for your situation:',
+    type: 'dua_card',
+    metadata: duaData
+  }]);
+      
+      } else if (activeMode === 'video') {
         const videos = await aiService.findVideos(userMsg.content);
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
@@ -135,7 +151,12 @@ export const Discover: React.FC = () => {
               <div className={`max-w-[85%] md:max-w-[75%] lg:max-w-[65%] space-y-2`}>
                 {msg.content && (
                   <div className={`p-3 sm:p-4 md:p-5 rounded-2xl text-xs sm:text-sm md:text-base leading-relaxed ${msg.role === 'user' ? 'bg-brand-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none shadow-sm'}`}>
-                    {msg.content}
+                    {msg.content.split('\n').map((line, i) => (
+                    <span key={i}>
+                    {line}
+                  {i < msg.content.split('\n').length - 1 && <br />}
+                  </span>
+                  ))}
                   </div>
                 )}
 
